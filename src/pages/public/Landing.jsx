@@ -26,7 +26,7 @@ export default function Landing() {
             <Link to="/login" className="btn btn-gold">⌂ Request Intervention</Link>
           </div>
         </div>
-        <div className="hero-illustration">✊<div>YOUR<br />VOICE<br /><b>MATTERS</b></div></div>
+        <div className="hero-illustration"><div>YOUR<br />VOICE<br /><b>MATTERS</b></div></div>
       </section>
 
       <section className="landing-cards" id="how">
