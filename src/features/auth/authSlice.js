@@ -33,3 +33,6 @@ logout: (state) => {
   localStorage.removeItem("jiseti_user");
   localStorage.removeItem("jiseti_token");
 },
+export const { loginSuccess, logout } = authSlice.actions;
+
+export default authSlice.reducer;
