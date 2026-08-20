@@ -26,3 +26,10 @@ reducers: {
     localStorage.setItem("jiseti_token", action.payload.token);
   },
 },
+logout: (state) => {
+  state.user = null;
+  state.token = null;
+
+  localStorage.removeItem("jiseti_user");
+  localStorage.removeItem("jiseti_token");
+},
