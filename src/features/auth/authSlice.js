@@ -13,3 +13,16 @@ initialState: {
   user: savedUser,
   token: localStorage.getItem("jiseti_token"),
 },
+reducers: {
+  loginSuccess: (state, action) => {
+    state.user = action.payload.user;
+    state.token = action.payload.token;
+
+    localStorage.setItem(
+      "jiseti_user",
+      JSON.stringify(action.payload.user)
+    );
+
+    localStorage.setItem("jiseti_token", action.payload.token);
+  },
+},
