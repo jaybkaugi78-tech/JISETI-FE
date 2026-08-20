@@ -16,6 +16,10 @@ addReport: (state, action) => {
   if (index !== -1) state.items[index] = action.payload;
 },deleteReport: (state, action) => {
   state.items = state.items.filter((r) => r.id !== action.payload);
+},updateStatus: (state, action) => {
+  const report = state.items.find((r) => r.id === action.payload.id);
+  if (report) report.status = action.payload.status;
 },
+
 
 
