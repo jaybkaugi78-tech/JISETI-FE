@@ -19,7 +19,10 @@ addReport: (state, action) => {
 },updateStatus: (state, action) => {
   const report = state.items.find((r) => r.id === action.payload.id);
   if (report) report.status = action.payload.status;
-},
+},export const { addReport, updateReport, deleteReport, updateStatus } =
+  reportsSlice.actions;
+
+export default reportsSlice.reducer;
 
 
 
