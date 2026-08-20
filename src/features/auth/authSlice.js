@@ -9,3 +9,7 @@ const authSlice = createSlice({
   },
   reducers: {},
 });
+initialState: {
+  user: savedUser,
+  token: localStorage.getItem("jiseti_token"),
+},
