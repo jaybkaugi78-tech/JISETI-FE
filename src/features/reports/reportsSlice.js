@@ -9,3 +9,6 @@ const reportsSlice = createSlice({
   initialState: { items: initialReports },
   reducers: {},
 });
+addReport: (state, action) => {
+  state.items.unshift(action.payload);
+},
