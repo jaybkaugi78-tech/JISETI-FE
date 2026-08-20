@@ -7,5 +7,9 @@ const position = [
 ];return (
   <MapContainer center={position} zoom={12} className="map">
   </MapContainer>
-);
+);<TileLayer
+  attribution='&copy; OpenStreetMap contributors'
+  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+/>
+
 
