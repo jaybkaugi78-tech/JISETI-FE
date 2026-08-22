@@ -1,30 +1,40 @@
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
 import { apiFetch } from "../../services/api";
 
 export default function Profile() {
-  const reduxUser = useSelector((s) => s.auth.user);
-  const reports = useSelector((s) => s.reports.items);
-
-  const [user, setUser] = useState(reduxUser);
+  const [user, setUser] = useState(null);
+  const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const loadProfile = async () => {
+      setLoading(true);
+      setError("");
+
       try {
-        setError("");
+        const [userResponse, reportsResponse] = await Promise.all([
+          apiFetch("/api/auth/me"),
+          apiFetch("/api/reports"),
+        ]);
 
-        const response = await apiFetch("/api/auth/me");
-        const data = await response.json();
+        const userData = await userResponse.json();
+        const reportsData = await reportsResponse.json();
 
-        if (!response.ok) {
+        if (!userResponse.ok) {
           throw new Error(
-            data.error || "Unable to load profile."
+            userData.error || "Unable to load profile."
           );
         }
 
-        setUser(data.user || data);
+        if (!reportsResponse.ok) {
+          throw new Error(
+            reportsData.error || "Unable to load reports."
+          );
+        }
+
+        setUser(userData.user);
+        setReports(reportsData.reports || []);
       } catch (err) {
         if (err.message !== "Session expired") {
           setError(err.message);
@@ -38,25 +48,31 @@ export default function Profile() {
   }, []);
 
   if (loading) {
-    return <div className="empty">Loading profile...</div>;
+    return (
+      <div className="empty">
+        Loading profile...
+      </div>
+    );
+  }
+
+  if (error && !user) {
+    return (
+      <div className="empty">
+        {error}
+      </div>
+    );
   }
 
   if (!user) {
     return (
       <div className="empty">
-        {error || "Unable to load profile."}
+        User not found.
       </div>
     );
   }
 
-  const myReports = reports.filter(
-    (report) =>
-      report.createdBy === user.email ||
-      report.created_by === user.email
-  );
-
   const countStatus = (status) =>
-    myReports.filter(
+    reports.filter(
       (report) => report.status === status
     ).length;
 
@@ -71,9 +87,15 @@ export default function Profile() {
   return (
     <div>
       <div className="page-heading">
-        <span className="eyebrow">ACCOUNT</span>
+        <span className="eyebrow">
+          ACCOUNT
+        </span>
+
         <h2>Profile</h2>
-        <p>Manage your account and view your activity.</p>
+
+        <p>
+          Manage your account and view your activity.
+        </p>
       </div>
 
       {error && (
@@ -89,12 +111,20 @@ export default function Profile() {
 
         <div>
           <h2>{user.username}</h2>
+
           <p>{user.email}</p>
 
           <span className="status status-resolved">
             Active Citizen
           </span>
         </div>
+
+        <button
+          type="button"
+          className="btn btn-navy"
+        >
+          Edit Profile
+        </button>
       </div>
 
       <div className="profile-grid">
@@ -113,7 +143,7 @@ export default function Profile() {
 
           <div className="detail-row">
             <span>Total Reports</span>
-            <b>{myReports.length}</b>
+            <b>{reports.length}</b>
           </div>
         </section>
 
@@ -127,7 +157,11 @@ export default function Profile() {
 
           <div className="detail-row">
             <span>Under Investigation</span>
-            <b>{countStatus("UNDER INVESTIGATION")}</b>
+            <b>
+              {countStatus(
+                "UNDER INVESTIGATION"
+              )}
+            </b>
           </div>
 
           <div className="detail-row">
