@@ -1,12 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
-import { addReport } from "../../features/reports/reportsSlice";
+import {
+  addReport,
+  updateReport,
+} from "../../features/reports/reportsSlice";
+
 import { apiFetch } from "../../services/api";
 import ReportMap from "../../components/reports/ReportMap";
 
 export default function NewReport() {
+  const { id } = useParams();
+
+  const isEditMode = Boolean(id);
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -21,9 +29,83 @@ export default function NewReport() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [locationLoading, setLocationLoading] = useState(false);
-  const [searchingLocation, setSearchingLocation] = useState(false);
+  const [loadingReport, setLoadingReport] = useState(isEditMode);
+
+  const [searchingLocation, setSearchingLocation] =
+    useState(false);
+
+  const [locationLoading, setLocationLoading] =
+    useState(false);
+
   const [error, setError] = useState("");
+
+  // =====================================================
+  // LOAD EXISTING REPORT WHEN EDITING
+  // =====================================================
+
+  useEffect(() => {
+    if (!isEditMode) {
+      return;
+    }
+
+    const loadReport = async () => {
+      setLoadingReport(true);
+      setError("");
+
+      try {
+        const response = await apiFetch(
+          `/api/reports/${id}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || "Unable to load report."
+          );
+        }
+
+        const report = data.report;
+
+        // Only drafts can be edited
+        if (report.status !== "DRAFT") {
+          setError(
+            "This report can no longer be edited because it is not a DRAFT."
+          );
+
+          return;
+        }
+
+        setType(report.type);
+
+        setForm({
+          title: report.title || "",
+          description: report.description || "",
+          location_name: report.location_name || "",
+          latitude:
+            report.latitude !== null
+              ? report.latitude
+              : -1.286389,
+          longitude:
+            report.longitude !== null
+              ? report.longitude
+              : 36.817223,
+        });
+      } catch (err) {
+        if (err.message !== "Session expired") {
+          setError(err.message);
+        }
+      } finally {
+        setLoadingReport(false);
+      }
+    };
+
+    loadReport();
+  }, [id, isEditMode]);
+
+  // =====================================================
+  // NORMAL FORM CHANGE
+  // =====================================================
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -33,6 +115,10 @@ export default function NewReport() {
       [name]: value,
     }));
   };
+
+  // =====================================================
+  // SEARCH LOCATION BY NAME
+  // =====================================================
 
   const searchLocation = async () => {
     if (!form.location_name.trim()) {
@@ -44,7 +130,9 @@ export default function NewReport() {
     setSearchingLocation(true);
 
     try {
-      const query = encodeURIComponent(form.location_name);
+      const query = encodeURIComponent(
+        form.location_name
+      );
 
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`
@@ -57,28 +145,41 @@ export default function NewReport() {
       const data = await response.json();
 
       if (!data.length) {
-        throw new Error("Location not found.");
+        throw new Error(
+          "Location not found. Try a more specific location."
+        );
       }
 
-      const result = data[0];
+      const place = data[0];
 
       setForm((current) => ({
         ...current,
-        location_name: result.display_name,
-        latitude: Number(result.lat),
-        longitude: Number(result.lon),
+        location_name: place.display_name,
+        latitude: Number(place.lat),
+        longitude: Number(place.lon),
       }));
     } catch (err) {
       console.error(err);
-      setError(err.message || "Unable to search for that location.");
+
+      setError(
+        err.message ||
+          "Unable to search for that location."
+      );
     } finally {
       setSearchingLocation(false);
     }
   };
 
+  // =====================================================
+  // USE DEVICE CURRENT LOCATION
+  // =====================================================
+
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setError("Your browser does not support location services.");
+      setError(
+        "Your browser does not support location services."
+      );
+
       return;
     }
 
@@ -87,8 +188,11 @@ export default function NewReport() {
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
+        const latitude =
+          position.coords.latitude;
+
+        const longitude =
+          position.coords.longitude;
 
         try {
           const response = await fetch(
@@ -102,7 +206,8 @@ export default function NewReport() {
             latitude,
             longitude,
             location_name:
-              data.display_name || "Current location",
+              data.display_name ||
+              "Current location",
           }));
         } catch (err) {
           console.error(err);
@@ -111,16 +216,23 @@ export default function NewReport() {
             ...current,
             latitude,
             longitude,
-            location_name: "Current location",
+            location_name:
+              current.location_name ||
+              "Current location",
           }));
         } finally {
           setLocationLoading(false);
         }
       },
+
       () => {
-        setError("Unable to access your current location.");
+        setError(
+          "Unable to access your current location."
+        );
+
         setLocationLoading(false);
       },
+
       {
         enableHighAccuracy: true,
         timeout: 10000,
@@ -129,6 +241,10 @@ export default function NewReport() {
     );
   };
 
+  // =====================================================
+  // CREATE OR UPDATE REPORT
+  // =====================================================
+
   const submit = async (event) => {
     event.preventDefault();
 
@@ -136,27 +252,45 @@ export default function NewReport() {
     setLoading(true);
 
     try {
-      const response = await apiFetch("/api/reports", {
-        method: "POST",
-        body: JSON.stringify({
-          type,
-          title: form.title,
-          description: form.description,
-          location_name: form.location_name,
-          latitude: Number(form.latitude),
-          longitude: Number(form.longitude),
-        }),
-      });
+      const payload = {
+        title: form.title,
+        description: form.description,
+        location_name: form.location_name,
+        latitude: Number(form.latitude),
+        longitude: Number(form.longitude),
+      };
+
+      // Type is required when creating a report.
+      if (!isEditMode) {
+        payload.type = type;
+      }
+
+      const response = await apiFetch(
+        isEditMode
+          ? `/api/reports/${id}`
+          : "/api/reports",
+        {
+          method: isEditMode ? "PUT" : "POST",
+          body: JSON.stringify(payload),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.error || "Unable to create report."
+          data.error ||
+            `Unable to ${
+              isEditMode ? "update" : "create"
+            } report.`
         );
       }
 
-      dispatch(addReport(data.report));
+      if (isEditMode) {
+        dispatch(updateReport(data.report));
+      } else {
+        dispatch(addReport(data.report));
+      }
 
       navigate(`/reports/${data.report.id}`);
     } catch (err) {
@@ -168,6 +302,22 @@ export default function NewReport() {
     }
   };
 
+  // =====================================================
+  // LOADING EDIT REPORT
+  // =====================================================
+
+  if (loadingReport) {
+    return (
+      <div className="empty">
+        Loading report...
+      </div>
+    );
+  }
+
+  // =====================================================
+  // PAGE
+  // =====================================================
+
   return (
     <form onSubmit={submit}>
       <div className="page-heading">
@@ -175,15 +325,29 @@ export default function NewReport() {
           CITIZEN REPORTING
         </span>
 
-        <h2>Create a New Report</h2>
+        <h2>
+          {isEditMode
+            ? "Edit Report"
+            : "Create a New Report"}
+        </h2>
 
         <p>
-          Report corruption or request government intervention.
+          {isEditMode
+            ? "Update your draft report."
+            : "Report corruption or request government intervention."}
         </p>
       </div>
 
+      {error && (
+        <p className="form-error">
+          {error}
+        </p>
+      )}
+
       <div className="new-report-grid">
         <div>
+          {/* ================= REPORT TYPE ================= */}
+
           <section className="form-card">
             <h3>1. Select Report Type</h3>
 
@@ -191,16 +355,24 @@ export default function NewReport() {
               <button
                 type="button"
                 className={
-                  type === "RED_FLAG" ? "selected" : ""
+                  type === "RED_FLAG"
+                    ? "selected"
+                    : ""
                 }
-                onClick={() => setType("RED_FLAG")}
+                onClick={() =>
+                  !isEditMode &&
+                  setType("RED_FLAG")
+                }
+                disabled={isEditMode}
               >
                 <b>⚑</b>
 
                 <span>
                   <strong>Red-Flag</strong>
+
                   <small>
-                    Report corruption, fraud, abuse of power.
+                    Report corruption, fraud, abuse of
+                    power.
                   </small>
                 </span>
               </button>
@@ -212,19 +384,33 @@ export default function NewReport() {
                     ? "selected"
                     : ""
                 }
-                onClick={() => setType("INTERVENTION")}
+                onClick={() =>
+                  !isEditMode &&
+                  setType("INTERVENTION")
+                }
+                disabled={isEditMode}
               >
                 <b>⌂</b>
 
                 <span>
                   <strong>Intervention</strong>
+
                   <small>
                     Request government action on an issue.
                   </small>
                 </span>
               </button>
             </div>
+
+            {isEditMode && (
+              <small>
+                Report type cannot be changed after the
+                report is created.
+              </small>
+            )}
           </section>
+
+          {/* ================= DETAILS ================= */}
 
           <section className="form-card">
             <h3>2. Report Details</h3>
@@ -257,6 +443,8 @@ export default function NewReport() {
             </label>
           </section>
 
+          {/* ================= MEDIA ================= */}
+
           <section className="form-card">
             <h3>
               4. Supporting Media{" "}
@@ -278,16 +466,18 @@ export default function NewReport() {
           </section>
         </div>
 
+        {/* ================= LOCATION ================= */}
+
         <section className="form-card">
           <h3>3. Location</h3>
 
           <p>
-            Search for the area where the incident happened,
-            or use your current location.
+            Search for the area where the incident
+            happened or use your current location.
           </p>
 
           <label>
-            Location name
+            Location name *
 
             <input
               type="text"
@@ -350,23 +540,23 @@ export default function NewReport() {
           </div>
 
           <small>
-            Coordinates are generated automatically and used
-            for the map and Issues Near You.
+            Coordinates are generated automatically for
+            map and nearby-report features.
           </small>
         </section>
       </div>
 
-      {error && (
-        <p className="form-error">
-          {error}
-        </p>
-      )}
+      {/* ================= ACTIONS ================= */}
 
       <div className="form-actions">
         <button
           type="button"
           className="btn btn-outline"
-          onClick={() => navigate("/dashboard")}
+          onClick={() =>
+            isEditMode
+              ? navigate(`/reports/${id}`)
+              : navigate("/dashboard")
+          }
           disabled={loading}
         >
           Cancel
@@ -375,16 +565,30 @@ export default function NewReport() {
         <button
           type="submit"
           className="btn btn-gold"
-          disabled={loading}
+          disabled={loading || Boolean(error)}
         >
           {loading
-            ? "Submitting..."
+            ? isEditMode
+              ? "Saving..."
+              : "Submitting..."
+            : isEditMode
+            ? "Save Changes →"
             : "Submit Report →"}
         </button>
       </div>
 
       <p className="draft-note">
-        Your report will be saved as <b>DRAFT</b>.
+        {isEditMode ? (
+          <>
+            You can edit this report while it remains{" "}
+            <b>DRAFT</b>.
+          </>
+        ) : (
+          <>
+            Your report will be saved as{" "}
+            <b>DRAFT</b>.
+          </>
+        )}
       </p>
     </form>
   );
