@@ -56,17 +56,26 @@ export default function ReportDetail() {
             <b>{report.createdAt}</b>
           </div>
           {editable ? (
-            <div className="detail-actions">
-              <button className="btn btn-navy">Edit Report</button>
-              <button className="btn btn-danger" onClick={remove}>
-                Delete
-              </button>
-            </div>
-          ) : (
-            <div className="locked">
-              This report is locked because its status is no longer DRAFT.
-            </div>
-          )}
+  <div className="detail-actions">
+    <button
+      className="btn btn-navy"
+      onClick={() => navigate(`/reports/${report.id}/edit`)}
+    >
+      Edit Report
+    </button>
+
+    <button
+      className="btn btn-danger"
+      onClick={remove}
+    >
+      Delete
+    </button>
+  </div>
+) : (
+  <div className="locked">
+    This report is locked because its status is no longer DRAFT.
+  </div>
+)}
         </section>
       </div>
     </div>
