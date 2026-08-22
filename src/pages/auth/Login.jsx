@@ -9,17 +9,45 @@ export default function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const submit = (e) => {
-    e.preventDefault();
-    const isAdmin = email.toLowerCase().includes("admin");
-    const user = {
-      username: isAdmin ? "Admin User" : "Citizen User",
-      email,
-      role: isAdmin ? "admin" : "user",
-    };
-    dispatch(loginSuccess({ user, token: "demo-jwt-token" }));
-    navigate(isAdmin ? "/admin" : "/dashboard");
-  };
+  const submit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const response = await fetch("http://127.0.0.1:5000/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.error || data.msg || "Login failed");
+      return;
+    }
+
+    dispatch(
+      loginSuccess({
+        user: data.user,
+        token: data.access_token,
+      })
+    );
+
+    if (data.user.is_admin) {
+      navigate("/admin");
+    } else {
+      navigate("/dashboard");
+    }
+  } catch (error) {
+    console.error("Login error:", error);
+    alert("Unable to connect to the server.");
+  }
+};
 
   return (
     <div className="auth-page">
@@ -85,10 +113,6 @@ export default function Login() {
           <p className="center">
             Don't have an account? <Link to="/register">Sign up</Link>
           </p>
-          <small className="demo-note">
-            Demo: use any email. An email containing “admin” opens the admin
-            dashboard.
-          </small>
         </form>
       </div>
     </div>

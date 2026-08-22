@@ -8,12 +8,42 @@ export default function Register() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const submit = (e) => {
-    e.preventDefault();
-    const user = { ...form, role: "user" };
-    dispatch(loginSuccess({ user, token: "demo-jwt-token" }));
+const submit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const response = await fetch("http://127.0.0.1:5000/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: form.username,
+        email: form.email,
+        password: form.password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.error || data.msg || "Registration failed");
+      return;
+    }
+
+    dispatch(
+      loginSuccess({
+        user: data.user,
+        token: data.access_token,
+      })
+    );
+
     navigate("/dashboard");
-  };
+  } catch (error) {
+    console.error("Registration error:", error);
+    alert("Unable to connect to the server.");
+  }
+};
 
   return (
     <div className="auth-page single">
