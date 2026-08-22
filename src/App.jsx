@@ -20,12 +20,14 @@ export default function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/reports/new" element={<NewReport />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/reports" element={<MyReports />} />
           <Route path="/reports/new" element={<NewReport />} />
+          <Route path="/reports/:id/edit" element={<NewReport />} />
           <Route path="/reports/:id" element={<ReportDetail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/notifications" element={<Notifications />} />
