@@ -1,136 +1,126 @@
-import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 import StatusBadge from "../../components/common/StatusBadge";
 import ReportMap from "../../components/reports/ReportMap";
-
 import { deleteReport } from "../../features/reports/reportsSlice";
 import { apiFetch } from "../../services/api";
 
+import { useEffect, useState } from "react";
+
 export default function ReportDetail() {
   const { id } = useParams();
-
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  const user = useSelector((s) => s.auth.user);
+
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadReport = async () => {
-      setLoading(true);
-      setError("");
-
+    async function loadReport() {
       try {
-        const response = await apiFetch(
-          `/api/reports/${id}`
-        );
+        setLoading(true);
+        setError("");
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.error || "Unable to load this report."
-          );
-        }
+        const data = await apiFetch(`/reports/${id}`);
 
         setReport(data.report);
       } catch (err) {
-        if (err.message !== "Session expired") {
-          setError(err.message);
-        }
+        console.error(err);
+        setError(err.message || "Failed to load report.");
       } finally {
         setLoading(false);
       }
-    };
+    }
 
     loadReport();
   }, [id]);
 
   const remove = async () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this draft?"
-    );
+    if (!report) return;
 
-    if (!confirmed) {
+    if (!window.confirm("Delete this draft?")) {
       return;
     }
 
-    setDeleting(true);
-    setError("");
-
     try {
-      const response = await apiFetch(
-        `/api/reports/${report.id}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Unable to delete report."
-        );
-      }
+      await apiFetch(`/reports/${report.id}`, {
+        method: "DELETE",
+      });
 
       dispatch(deleteReport(report.id));
 
       navigate("/reports");
     } catch (err) {
-      if (err.message !== "Session expired") {
-        setError(err.message);
-      }
-    } finally {
-      setDeleting(false);
+      console.error(err);
+      alert(err.message || "Could not delete report.");
     }
   };
 
   if (loading) {
-    return (
-      <div className="empty">
-        Loading report...
-      </div>
-    );
+    return <div className="empty">Loading report...</div>;
   }
 
-  if (error && !report) {
+  if (error) {
     return (
       <div className="empty">
         <p>{error}</p>
 
-        <Link to="/reports">
-          ← Back to My Reports
+        <Link to="/reports" className="btn btn-navy">
+          Back to Reports
         </Link>
       </div>
     );
   }
 
   if (!report) {
-    return (
-      <div className="empty">
-        Report not found.
-      </div>
-    );
+    return <div className="empty">Report not found.</div>;
   }
 
-  const editable = report.status === "DRAFT";
+  const owner =
+    Number(report.user_id) === Number(user?.id);
 
-  const createdDate = report.created_at
+  const editable =
+    owner && report.status === "DRAFT";
+
+  const media = Array.isArray(report.media)
+    ? report.media
+    : [];
+
+  const locationName =
+    report.location_name || "Location not specified";
+
+  const createdAt = report.created_at
     ? new Date(report.created_at).toLocaleString()
     : "Unknown";
+
+  const getMediaUrl = (filename) => {
+    if (!filename) return "";
+
+    if (
+      filename.startsWith("http://") ||
+      filename.startsWith("https://")
+    ) {
+      return filename;
+    }
+
+    return `http://127.0.0.1:5000/uploads/${filename}`;
+  };
+
+  const isVideo = (filename) => {
+    return /\.(mp4|webm|ogg|mov)$/i.test(filename);
+  };
 
   return (
     <div>
       <div className="page-heading">
         <span className="eyebrow">
           {report.type === "RED_FLAG"
-            ? "RED-FLAG"
-            : "INTERVENTION"}
+            ? "RED FLAG"
+            : report.type}
         </span>
 
         <h2>{report.title}</h2>
@@ -138,15 +128,7 @@ export default function ReportDetail() {
         <StatusBadge status={report.status} />
       </div>
 
-      {error && (
-        <p className="form-error">
-          {error}
-        </p>
-      )}
-
       <div className="detail-grid">
-        {/* LEFT SIDE */}
-
         <section className="form-card">
           <h3>Description</h3>
 
@@ -156,37 +138,64 @@ export default function ReportDetail() {
 
           <h3>Location</h3>
 
-          <p>
-            📍{" "}
-            {report.location_name ||
-              "Location unavailable"}
-          </p>
+          <p>{locationName}</p>
 
-          <ReportMap report={report} />
+          {report.latitude != null &&
+            report.longitude != null && (
+              <ReportMap report={report} />
+            )}
+
+          <h3>Supporting Evidence</h3>
+
+          {media.length === 0 ? (
+            <p className="empty">
+              No images or videos attached.
+            </p>
+          ) : (
+            <div className="evidence-grid">
+              {media.map((filename, index) => {
+                const mediaUrl =
+                  getMediaUrl(filename);
+
+                return (
+                  <div
+                    className="evidence-item"
+                    key={`${filename}-${index}`}
+                  >
+                    {isVideo(filename) ? (
+                      <video
+                        src={mediaUrl}
+                        controls
+                        preload="metadata"
+                        className="evidence-media"
+                      >
+                        Your browser does not support
+                        video playback.
+                      </video>
+                    ) : (
+                      <img
+                        src={mediaUrl}
+                        alt={`Evidence ${index + 1}`}
+                        className="evidence-media"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
-
-        {/* RIGHT SIDE */}
 
         <section className="form-card">
           <h3>Report Information</h3>
 
           <div className="detail-row">
             <span>Report ID</span>
-            <b>#{report.id}</b>
-          </div>
-
-          <div className="detail-row">
-            <span>Location</span>
-
-            <b>
-              {report.location_name ||
-                "Not provided"}
-            </b>
+            <b>{report.id}</b>
           </div>
 
           <div className="detail-row">
             <span>Type</span>
-
             <b>
               {report.type === "RED_FLAG"
                 ? "Red-Flag"
@@ -195,96 +204,52 @@ export default function ReportDetail() {
           </div>
 
           <div className="detail-row">
-            <span>Status</span>
+            <span>Location</span>
+            <b>{locationName}</b>
+          </div>
 
+          <div className="detail-row">
+            <span>Status</span>
             <StatusBadge status={report.status} />
           </div>
 
           <div className="detail-row">
             <span>Created</span>
-
-            <b>{createdDate}</b>
+            <b>{createdAt}</b>
           </div>
 
-          {/* STATUS HISTORY */}
-
-          <div className="status-history">
-            <h3>Status History</h3>
-
-            {!report.status_history ||
-            report.status_history.length === 0 ? (
-              <>
-                <div className="detail-row">
-                  <span>DRAFT</span>
-                  <small>Report created</small>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="detail-row">
-                  <span>DRAFT</span>
-                  <small>Report created</small>
-                </div>
-
-                {report.status_history.map(
-                  (history) => (
-                    <div
-                      className="detail-row"
-                      key={history.id}
-                    >
-                      <div>
-                        <b>
-                          {history.old_status?.replaceAll(
-                            "_",
-                            " "
-                          )}
-                        </b>
-
-                        {" → "}
-
-                        <b>
-                          {history.new_status?.replaceAll(
-                            "_",
-                            " "
-                          )}
-                        </b>
-                      </div>
-
-                      <small>
-                        {history.changed_at
-                          ? new Date(
-                              history.changed_at
-                            ).toLocaleString()
-                          : ""}
-                      </small>
-                    </div>
-                  )
-                )}
-              </>
-            )}
+          <div className="detail-row">
+            <span>Evidence</span>
+            <b>{media.length}</b>
           </div>
-
-          {/* ACTIONS */}
 
           {editable ? (
             <div className="detail-actions">
-              <button className="btn btn-navy">Edit Report</button>
-              <button className="btn btn-danger" onClick={remove}>
+              <button
+                className="btn btn-navy"
+                onClick={() =>
+                  navigate(
+                    `/reports/${report.id}/edit`
+                  )
+                }
+              >
+                Edit Report
+              </button>
+
+              <button
+                className="btn btn-danger"
+                onClick={remove}
+              >
                 Delete
               </button>
             </div>
           ) : (
             <div className="locked">
-              This report is locked because its status is no longer DRAFT.
+              This report is locked because its
+              status is no longer DRAFT.
             </div>
           )}
         </section>
-      </div>
-
-      <div style={{ marginTop: "20px" }}>
-        <Link to="/reports">
-          ← Back to My Reports
-        </Link>
       </div>
     </div>
   );
