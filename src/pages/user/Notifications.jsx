@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { apiFetch } from "../../services/api";
 
 export default function Notifications() {
+  const navigate = useNavigate();
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -49,6 +51,80 @@ export default function Notifications() {
     return new Date(date).toLocaleString();
   };
 
+  const viewNotification = async (notification) => {
+    try {
+      if (!notification.is_read) {
+        const response = await apiFetch(
+          `/api/reports/notifications/${notification.id}/read`,
+          {
+            method: "PATCH",
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || "Unable to mark notification as read."
+          );
+        }
+
+        setNotifications((current) =>
+          current.map((item) =>
+            item.id === notification.id
+              ? {
+                  ...item,
+                  is_read: true,
+                }
+              : item
+          )
+        );
+      }
+
+      navigate(`/reports/${notification.report_id}`);
+    } catch (err) {
+      if (err.message !== "Session expired") {
+        setError(err.message);
+      }
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      setError("");
+
+      const response = await apiFetch(
+        "/api/reports/notifications/read-all",
+        {
+          method: "PATCH",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Unable to mark notifications as read."
+        );
+      }
+
+      setNotifications((current) =>
+        current.map((notification) => ({
+          ...notification,
+          is_read: true,
+        }))
+      );
+    } catch (err) {
+      if (err.message !== "Session expired") {
+        setError(err.message);
+      }
+    }
+  };
+
+  const unreadCount = notifications.filter(
+    (notification) => !notification.is_read
+  ).length;
+
   return (
     <div>
       <div className="page-heading">
@@ -64,6 +140,30 @@ export default function Notifications() {
       </div>
 
       <section className="form-card">
+        {unreadCount > 0 && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "16px",
+            }}
+          >
+            <span>
+              {unreadCount} unread notification
+              {unreadCount !== 1 ? "s" : ""}
+            </span>
+
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={markAllRead}
+            >
+              Mark all as read
+            </button>
+          </div>
+        )}
+
         {loading && (
           <div className="empty">
             Loading notifications...
@@ -71,7 +171,7 @@ export default function Notifications() {
         )}
 
         {error && (
-          <div className="empty">
+          <div className="form-error">
             {error}
           </div>
         )}
@@ -85,18 +185,38 @@ export default function Notifications() {
           )}
 
         {!loading &&
-          !error &&
           notifications.map((notification) => (
             <div
-              className="notification"
+              className={`notification ${
+                notification.is_read
+                  ? "notification-read"
+                  : "notification-unread"
+              }`}
               key={notification.id}
             >
-              <b>
-                Status updated to{" "}
-                {formatStatus(
-                  notification.new_status
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "15px",
+                }}
+              >
+                <b>
+                  Status updated to{" "}
+                  {formatStatus(
+                    notification.new_status
+                  )}
+                </b>
+
+                {!notification.is_read && (
+                  <span
+                    className="notification-dot"
+                    title="Unread"
+                  >
+                    ●
+                  </span>
                 )}
-              </b>
+              </div>
 
               <p>
                 Your report{" "}
@@ -120,12 +240,15 @@ export default function Notifications() {
               </small>
 
               <div style={{ marginTop: "10px" }}>
-                <Link
-                  to={`/reports/${notification.report_id}`}
+                <button
+                  type="button"
                   className="view-link"
+                  onClick={() =>
+                    viewNotification(notification)
+                  }
                 >
                   View Report →
-                </Link>
+                </button>
               </div>
             </div>
           ))}
