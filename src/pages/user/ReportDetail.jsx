@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useDispatch } from "react-redux";
 
 import StatusBadge from "../../components/common/StatusBadge";
 import ReportMap from "../../components/reports/ReportMap";
+
+import { deleteReport } from "../../features/reports/reportsSlice";
 import { apiFetch } from "../../services/api";
 
 export default function ReportDetail() {
   const { id } = useParams();
+
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,7 +25,9 @@ export default function ReportDetail() {
       setError("");
 
       try {
-        const response = await apiFetch(`/api/reports/${id}`);
+        const response = await apiFetch(
+          `/api/reports/${id}`
+        );
 
         const data = await response.json();
 
@@ -71,8 +78,12 @@ export default function ReportDetail() {
         );
       }
 
+      dispatch(deleteReport(report.id));
+
       navigate("/reports");
     } catch (err) {
+      console.error("Delete failed:", err);
+
       if (err.message !== "Session expired") {
         setError(err.message);
       }
@@ -176,6 +187,7 @@ export default function ReportDetail() {
 
           <div className="detail-row">
             <span>Type</span>
+
             <b>
               {report.type === "RED_FLAG"
                 ? "Red-Flag"
@@ -185,11 +197,13 @@ export default function ReportDetail() {
 
           <div className="detail-row">
             <span>Status</span>
+
             <StatusBadge status={report.status} />
           </div>
 
           <div className="detail-row">
             <span>Created</span>
+
             <b>{createdDate}</b>
           </div>
 
@@ -200,9 +214,7 @@ export default function ReportDetail() {
 
             {!report.status_history ||
             report.status_history.length === 0 ? (
-              <p>
-                No status changes yet.
-              </p>
+              <p>No status changes yet.</p>
             ) : (
               report.status_history.map(
                 (history) => (
@@ -215,7 +227,9 @@ export default function ReportDetail() {
                         "_",
                         " "
                       )}
+
                       {" → "}
+
                       {history.new_status?.replaceAll(
                         "_",
                         " "
@@ -235,18 +249,18 @@ export default function ReportDetail() {
             )}
           </div>
 
-          {/* DRAFT ACTIONS */}
+          {/* ACTIONS */}
 
           {editable ? (
             <div className="detail-actions">
               <button
                 className="btn btn-navy"
                 type="button"
-                onClick={() => {
-                  alert(
-                    "We will connect Edit Report next."
-                  );
-                }}
+                onClick={() =>
+                  navigate(
+                    `/reports/${report.id}/edit`
+                  )
+                }
               >
                 Edit Report
               </button>
