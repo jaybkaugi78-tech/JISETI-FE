@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import ReportCard from "../../components/reports/ReportCard";
+import { apiFetch } from "../../services/api";
 
 export default function MyReports() {
   const [reports, setReports] = useState([]);
@@ -8,45 +9,24 @@ export default function MyReports() {
 
   useEffect(() => {
     const loadReports = async () => {
-      const token = localStorage.getItem("jiseti_token");
-
-      if (!token) {
-        setError("You must be logged in to view your reports.");
-        setLoading(false);
-        return;
-      }
+      setLoading(true);
+      setError("");
 
       try {
-        const response = await fetch(
-          "http://127.0.0.1:5000/api/reports",
-          {
-            method: "GET",
-
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (response.status === 401) {
-          localStorage.removeItem("jiseti_token");
-          localStorage.removeItem("jiseti_user");
-
-          window.location.href = "/login";
-          return;
-        }
+        const response = await apiFetch("/api/reports");
+        const data = await response.json();
 
         if (!response.ok) {
-          throw new Error("Failed to load reports.");
+          throw new Error(
+            data.error || "Unable to load your reports."
+          );
         }
-
-        const data = await response.json();
 
         setReports(data.reports || []);
       } catch (err) {
-        console.error(err);
-        setError("Unable to load your reports.");
+        if (err.message !== "Session expired") {
+          setError(err.message);
+        }
       } finally {
         setLoading(false);
       }
@@ -70,33 +50,33 @@ export default function MyReports() {
       </div>
 
       {loading && (
-        <p>Loading your reports...</p>
+        <div className="empty">
+          Loading your reports...
+        </div>
       )}
 
       {error && (
-        <p>{error}</p>
+        <div className="empty">
+          {error}
+        </div>
       )}
 
-      {!loading &&
-        !error &&
-        reports.length === 0 && (
-          <p>
-            You haven't submitted any reports yet.
-          </p>
-        )}
+      {!loading && !error && reports.length === 0 && (
+        <div className="empty">
+          You haven't created any reports yet.
+        </div>
+      )}
 
-      {!loading &&
-        !error &&
-        reports.length > 0 && (
-          <div className="reports-list">
-            {reports.map((report) => (
-              <ReportCard
-                key={report.id}
-                report={report}
-              />
-            ))}
-          </div>
-        )}
+      {!loading && !error && reports.length > 0 && (
+        <div className="reports-list">
+          {reports.map((report) => (
+            <ReportCard
+              key={report.id}
+              report={report}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
