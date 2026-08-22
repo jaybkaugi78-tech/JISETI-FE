@@ -82,8 +82,6 @@ export default function ReportDetail() {
 
       navigate("/reports");
     } catch (err) {
-      console.error("Delete failed:", err);
-
       if (err.message !== "Session expired") {
         setError(err.message);
       }
@@ -179,6 +177,7 @@ export default function ReportDetail() {
 
           <div className="detail-row">
             <span>Location</span>
+
             <b>
               {report.location_name ||
                 "Not provided"}
@@ -214,38 +213,54 @@ export default function ReportDetail() {
 
             {!report.status_history ||
             report.status_history.length === 0 ? (
-              <p>No status changes yet.</p>
+              <>
+                <div className="detail-row">
+                  <span>DRAFT</span>
+                  <small>Report created</small>
+                </div>
+              </>
             ) : (
-              report.status_history.map(
-                (history) => (
-                  <div
-                    className="detail-row"
-                    key={history.id}
-                  >
-                    <span>
-                      {history.old_status?.replaceAll(
-                        "_",
-                        " "
-                      )}
+              <>
+                <div className="detail-row">
+                  <span>DRAFT</span>
+                  <small>Report created</small>
+                </div>
 
-                      {" → "}
+                {report.status_history.map(
+                  (history) => (
+                    <div
+                      className="detail-row"
+                      key={history.id}
+                    >
+                      <div>
+                        <b>
+                          {history.old_status?.replaceAll(
+                            "_",
+                            " "
+                          )}
+                        </b>
 
-                      {history.new_status?.replaceAll(
-                        "_",
-                        " "
-                      )}
-                    </span>
+                        {" → "}
 
-                    <small>
-                      {history.changed_at
-                        ? new Date(
-                            history.changed_at
-                          ).toLocaleString()
-                        : ""}
-                    </small>
-                  </div>
-                )
-              )
+                        <b>
+                          {history.new_status?.replaceAll(
+                            "_",
+                            " "
+                          )}
+                        </b>
+                      </div>
+
+                      <small>
+                        {history.changed_at
+                          ? new Date(
+                              history.changed_at
+                            ).toLocaleString()
+                          : ""}
+                      </small>
+                    </div>
+                  )
+                )}
+              </>
             )}
           </div>
 
