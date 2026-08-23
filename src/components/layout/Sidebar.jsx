@@ -12,18 +12,16 @@ export default function Sidebar({ admin }) {
   const [notificationCount, setNotificationCount] = useState(0);
 
   const links = admin
-    ? [
-        ["/admin", "⌂", "Dashboard"],
-        ["/reports", "▤", "My Reports"],
-        ["/profile", "○", "Profile"],
-      ]
-    : [
-        ["/dashboard", "⌂", "Dashboard"],
-        ["/reports", "▤", "My Reports"],
-        ["/reports/new", "+", "New Report"],
-        ["/notifications", "○", "Notifications"],
-        ["/profile", "○", "Profile"],
-      ];
+  ? [
+      ["/admin", "⌂", "Dashboard"],
+    ]
+  : [
+      ["/dashboard", "⌂", "Dashboard"],
+      ["/reports", "▤", "My Reports"],
+      ["/reports/new", "+", "New Report"],
+      ["/notifications", "○", "Notifications"],
+      ["/profile", "○", "Profile"],
+    ];
 
   const loadNotificationCount = async () => {
     if (admin) {
