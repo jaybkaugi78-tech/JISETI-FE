@@ -19,3 +19,6 @@ function MapUpdater({ position }) {
 export default function ReportMap({ report }) {
   const latitude = Number(report?.latitude);
   const longitude = Number(report?.longitude);
+  const hasValidCoordinates =
+  Number.isFinite(latitude) &&
+  Number.isFinite(longitude);
