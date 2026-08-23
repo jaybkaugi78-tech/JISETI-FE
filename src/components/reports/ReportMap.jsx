@@ -22,3 +22,6 @@ export default function ReportMap({ report }) {
   const hasValidCoordinates =
   Number.isFinite(latitude) &&
   Number.isFinite(longitude);
+  const position = hasValidCoordinates
+  ? [latitude, longitude]
+  : [-1.286389, 36.817223];
