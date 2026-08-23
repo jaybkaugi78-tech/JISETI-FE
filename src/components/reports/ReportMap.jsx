@@ -16,3 +16,6 @@ function MapUpdater({ position }) {
 
   return null;
 }
+export default function ReportMap({ report }) {
+  const latitude = Number(report?.latitude);
+  const longitude = Number(report?.longitude);
