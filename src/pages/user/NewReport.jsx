@@ -1,5 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 
 import ReportMap from "../../components/reports/ReportMap";
 import { apiFetch } from "../../services/api";
@@ -17,8 +25,8 @@ export default function NewReport() {
     title: "",
     description: "",
     location_name: "",
-    latitude: -1.286389,
-    longitude: 36.817223,
+    latitude: "",
+    longitude: "",
   });
 
   const [files, setFiles] = useState([]);
@@ -26,11 +34,15 @@ export default function NewReport() {
 
   const [loading, setLoading] = useState(isEditMode);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
-  // =====================================================
-  // LOAD EXISTING REPORT WHEN EDITING
-  // =====================================================
+  const [searchingLocation, setSearchingLocation] =
+    useState(false);
+
+  const [gettingLocation, setGettingLocation] =
+    useState(false);
+
+  const [error, setError] = useState("");
+  const [locationError, setLocationError] = useState("");
 
   useEffect(() => {
     if (!isEditMode) {
@@ -72,10 +84,8 @@ export default function NewReport() {
           title: report.title || "",
           description: report.description || "",
           location_name: report.location_name || "",
-          latitude:
-            report.latitude ?? -1.286389,
-          longitude:
-            report.longitude ?? 36.817223,
+          latitude: report.latitude ?? "",
+          longitude: report.longitude ?? "",
         });
 
         setExistingMedia(
@@ -99,10 +109,6 @@ export default function NewReport() {
     loadReport();
   }, [id, isEditMode]);
 
-  // =====================================================
-  // FILE SELECTION
-  // =====================================================
-
   const handleFiles = (e) => {
     const selectedFiles = Array.from(
       e.target.files || []
@@ -111,39 +117,172 @@ export default function NewReport() {
     setFiles(selectedFiles);
   };
 
-  // =====================================================
-  // CURRENT LOCATION
-  // =====================================================
+  const findLocation = async () => {
+    const location = form.location_name.trim();
+
+    if (!location) {
+      setLocationError(
+        "Enter an area or location name first."
+      );
+      return;
+    }
+
+    try {
+      setSearchingLocation(true);
+      setLocationError("");
+
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(
+          location
+        )}`
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Unable to search for location."
+        );
+      }
+
+      const data = await response.json();
+
+      if (!data.length) {
+        setLocationError(
+          "Location not found. Try a more specific area name."
+        );
+        return;
+      }
+
+      const result = data[0];
+
+      setForm((current) => ({
+        ...current,
+        location_name:
+          result.display_name || location,
+        latitude: Number(result.lat),
+        longitude: Number(result.lon),
+      }));
+    } catch (err) {
+      console.error(
+        "Location search error:",
+        err
+      );
+
+      setLocationError(
+        err.message ||
+          "Unable to find that location."
+      );
+    } finally {
+      setSearchingLocation(false);
+    }
+  };
+
+  const reverseGeocode = async (
+    latitude,
+    longitude
+  ) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+      );
+
+      if (!response.ok) {
+        return "";
+      }
+
+      const data = await response.json();
+
+      return data.display_name || "";
+    } catch (err) {
+      console.error(
+        "Reverse geocoding error:",
+        err
+      );
+
+      return "";
+    }
+  };
 
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setError(
+      setLocationError(
         "Geolocation is not supported by your browser."
       );
       return;
     }
 
-    setError("");
+    setLocationError("");
+    setGettingLocation(true);
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
+        const latitude =
+          position.coords.latitude;
+
+        const longitude =
+          position.coords.longitude;
+
+        const locationName =
+          await reverseGeocode(
+            latitude,
+            longitude
+          );
+
         setForm((current) => ({
           ...current,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
+          latitude,
+          longitude,
+          location_name:
+            locationName ||
+            current.location_name ||
+            "Current location",
         }));
+
+        setGettingLocation(false);
       },
-      () => {
-        setError(
-          "Unable to get your current location."
+
+      (geoError) => {
+        console.error(
+          "Geolocation error:",
+          geoError
         );
+
+        if (
+          geoError.code ===
+          geoError.PERMISSION_DENIED
+        ) {
+          setLocationError(
+            "Location permission was denied. Allow location access in your browser and try again."
+          );
+        } else if (
+          geoError.code ===
+          geoError.POSITION_UNAVAILABLE
+        ) {
+          setLocationError(
+            "Your current location is unavailable."
+          );
+        } else if (
+          geoError.code ===
+          geoError.TIMEOUT
+        ) {
+          setLocationError(
+            "Getting your current location took too long. Try again."
+          );
+        } else {
+          setLocationError(
+            "Unable to get your current location."
+          );
+        }
+
+        setGettingLocation(false);
+      },
+
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
       }
     );
   };
-
-  // =====================================================
-  // CREATE REPORT
-  // =====================================================
 
   const createReport = async () => {
     const formData = new FormData();
@@ -170,19 +309,15 @@ export default function NewReport() {
       form.location_name.trim()
     );
 
-    if (form.latitude !== "") {
-      formData.append(
-        "latitude",
-        form.latitude
-      );
-    }
+    formData.append(
+      "latitude",
+      form.latitude
+    );
 
-    if (form.longitude !== "") {
-      formData.append(
-        "longitude",
-        form.longitude
-      );
-    }
+    formData.append(
+      "longitude",
+      form.longitude
+    );
 
     files.forEach((file) => {
       formData.append(
@@ -211,10 +346,6 @@ export default function NewReport() {
     return data.report;
   };
 
-  // =====================================================
-  // UPDATE REPORT
-  // =====================================================
-
   const updateReport = async () => {
     const response = await apiFetch(
       `/api/reports/${id}`,
@@ -231,14 +362,10 @@ export default function NewReport() {
             form.location_name.trim(),
 
           latitude:
-            form.latitude === ""
-              ? null
-              : Number(form.latitude),
+            Number(form.latitude),
 
           longitude:
-            form.longitude === ""
-              ? null
-              : Number(form.longitude),
+            Number(form.longitude),
         }),
       }
     );
@@ -255,10 +382,6 @@ export default function NewReport() {
     return data.report;
   };
 
-  // =====================================================
-  // SUBMIT
-  // =====================================================
-
   const submit = async (e) => {
     e.preventDefault();
 
@@ -268,6 +391,23 @@ export default function NewReport() {
     ) {
       setError(
         "Title and description are required."
+      );
+      return;
+    }
+
+    if (!form.location_name.trim()) {
+      setError(
+        "Enter a location for the report."
+      );
+      return;
+    }
+
+    if (
+      form.latitude === "" ||
+      form.longitude === ""
+    ) {
+      setError(
+        "Please click Find Location or Use My Current Location first."
       );
       return;
     }
@@ -303,19 +443,11 @@ export default function NewReport() {
     }
   };
 
-  // =====================================================
-  // MEDIA URL
-  // =====================================================
-
   const mediaUrl = (filename) =>
     `http://127.0.0.1:5000/api/reports/media/${filename}`;
 
   const isVideo = (filename) =>
     /\.(mp4|webm|mov)$/i.test(filename);
-
-  // =====================================================
-  // LOADING
-  // =====================================================
 
   if (loading) {
     return (
@@ -324,10 +456,6 @@ export default function NewReport() {
       </div>
     );
   }
-
-  // =====================================================
-  // PAGE
-  // =====================================================
 
   return (
     <form onSubmit={submit}>
@@ -362,10 +490,6 @@ export default function NewReport() {
 
       <div className="new-report-grid">
         <div>
-          {/* ========================================= */}
-          {/* REPORT TYPE */}
-          {/* ========================================= */}
-
           <section className="form-card">
             <h3>
               1. Select Report Type
@@ -380,9 +504,13 @@ export default function NewReport() {
                     : ""
                 }
                 onClick={() =>
-                  setType("Red-Flag")
+                  setType(
+                    "Red-Flag"
+                  )
                 }
-                disabled={isEditMode}
+                disabled={
+                  isEditMode
+                }
               >
                 <b>⚑</b>
 
@@ -410,7 +538,9 @@ export default function NewReport() {
                     "Intervention"
                   )
                 }
-                disabled={isEditMode}
+                disabled={
+                  isEditMode
+                }
               >
                 <b>⌂</b>
 
@@ -435,10 +565,6 @@ export default function NewReport() {
             )}
           </section>
 
-          {/* ========================================= */}
-          {/* DETAILS */}
-          {/* ========================================= */}
-
           <section className="form-card">
             <h3>
               2. Report Details
@@ -449,7 +575,9 @@ export default function NewReport() {
 
               <input
                 maxLength="100"
-                value={form.title}
+                value={
+                  form.title
+                }
                 onChange={(e) =>
                   setForm({
                     ...form,
@@ -482,10 +610,6 @@ export default function NewReport() {
               />
             </label>
           </section>
-
-          {/* ========================================= */}
-          {/* MEDIA */}
-          {/* ========================================= */}
 
           <section className="form-card">
             <h3>
@@ -614,36 +738,89 @@ export default function NewReport() {
           </section>
         </div>
 
-        {/* ========================================= */}
-        {/* LOCATION */}
-        {/* ========================================= */}
-
         <section className="form-card">
-          <h3>4. Location</h3>
+          <h3>
+            4. Location
+          </h3>
 
           <p>
-            Pin the location of the
-            incident.
+            Search for the location of
+            the incident or use your
+            current location.
           </p>
 
           <label>
-            Area / Location Name
+            Area / Location Name *
 
             <input
               type="text"
               value={
                 form.location_name
               }
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  location_name:
-                    e.target.value,
-                })
-              }
-              placeholder="e.g. Westlands, Nairobi"
+              onChange={(e) => {
+                setForm(
+                  (current) => ({
+                    ...current,
+                    location_name:
+                      e.target.value,
+                    latitude: "",
+                    longitude: "",
+                  })
+                );
+
+                setLocationError("");
+              }}
+              placeholder="e.g. Ruiru, Kiambu"
+              required
             />
           </label>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+              marginBottom: "15px",
+            }}
+          >
+            <button
+              type="button"
+              className="btn btn-navy"
+              onClick={
+                findLocation
+              }
+              disabled={
+                searchingLocation ||
+                gettingLocation
+              }
+            >
+              {searchingLocation
+                ? "Finding Location..."
+                : "🔍 Find Location"}
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={
+                useCurrentLocation
+              }
+              disabled={
+                searchingLocation ||
+                gettingLocation
+              }
+            >
+              {gettingLocation
+                ? "Getting Location..."
+                : "⌖ Use My Current Location"}
+            </button>
+          </div>
+
+          {locationError && (
+            <p className="form-error">
+              {locationError}
+            </p>
+          )}
 
           <ReportMap
             report={form}
@@ -654,18 +831,12 @@ export default function NewReport() {
               Latitude
 
               <input
-                type="number"
-                step="any"
+                type="text"
                 value={
                   form.latitude
                 }
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    latitude:
-                      e.target.value,
-                  })
-                }
+                readOnly
+                placeholder="Select a location"
               />
             </label>
 
@@ -673,44 +844,31 @@ export default function NewReport() {
               Longitude
 
               <input
-                type="number"
-                step="any"
+                type="text"
                 value={
                   form.longitude
                 }
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    longitude:
-                      e.target.value,
-                  })
-                }
+                readOnly
+                placeholder="Select a location"
               />
             </label>
           </div>
 
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={
-              useCurrentLocation
-            }
-          >
-            ⌖ Use My Current
-            Location
-          </button>
+          <small>
+            Coordinates are generated
+            automatically when you
+            confirm a location.
+          </small>
         </section>
       </div>
-
-      {/* ========================================= */}
-      {/* ACTIONS */}
-      {/* ========================================= */}
 
       <div className="form-actions">
         <button
           type="button"
           className="btn btn-outline"
-          disabled={submitting}
+          disabled={
+            submitting
+          }
           onClick={() =>
             isEditMode
               ? navigate(
@@ -727,7 +885,11 @@ export default function NewReport() {
         <button
           type="submit"
           className="btn btn-gold"
-          disabled={submitting}
+          disabled={
+            submitting ||
+            searchingLocation ||
+            gettingLocation
+          }
         >
           {submitting
             ? isEditMode
