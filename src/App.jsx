@@ -6,6 +6,7 @@ import {
 
 import Landing from "./pages/public/Landing";
 import PublicReports from "./pages/public/PublicReports";
+import PublicReportDetail from "./pages/public/PublicReportDetail";
 
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -25,89 +26,131 @@ import AdminRoute from "./routes/AdminRoute";
 
 import MainLayout from "./components/layout/MainLayout";
 
+
 export default function App() {
   return (
     <Routes>
-      {/* PUBLIC ROUTES */}
-
       <Route
         path="/"
-        element={<Landing />}
+        element={
+          <Landing />
+        }
       />
 
       <Route
         path="/login"
-        element={<Login />}
+        element={
+          <Login />
+        }
       />
 
       <Route
         path="/register"
-        element={<Register />}
+        element={
+          <Register />
+        }
       />
 
       <Route
         path="/public/reports"
-        element={<PublicReports />}
+        element={
+          <PublicReports />
+        }
       />
 
-      {/* USER ROUTES */}
+      <Route
+        path="/public/reports/:id"
+        element={
+          <PublicReportDetail />
+        }
+      />
 
-      <Route element={<ProtectedRoute />}>
-        <Route element={<MainLayout />}>
+      <Route
+        element={
+          <ProtectedRoute />
+        }
+      >
+        <Route
+          element={
+            <MainLayout />
+          }
+        >
           <Route
             path="/dashboard"
-            element={<Dashboard />}
+            element={
+              <Dashboard />
+            }
           />
 
           <Route
             path="/reports"
-            element={<MyReports />}
+            element={
+              <MyReports />
+            }
           />
 
           <Route
             path="/reports/new"
-            element={<NewReport />}
+            element={
+              <NewReport />
+            }
           />
 
           <Route
             path="/reports/:id/edit"
-            element={<NewReport />}
+            element={
+              <NewReport />
+            }
           />
 
           <Route
             path="/reports/:id"
-            element={<ReportDetail />}
+            element={
+              <ReportDetail />
+            }
           />
 
           <Route
             path="/profile"
-            element={<Profile />}
+            element={
+              <Profile />
+            }
           />
 
           <Route
             path="/notifications"
-            element={<Notifications />}
+            element={
+              <Notifications />
+            }
           />
         </Route>
       </Route>
 
-      {/* ADMIN ROUTES */}
-
-      <Route element={<AdminRoute />}>
-        <Route element={<MainLayout admin />}>
+      <Route
+        element={
+          <AdminRoute />
+        }
+      >
+        <Route
+          element={
+            <MainLayout admin />
+          }
+        >
           <Route
             path="/admin"
-            element={<AdminDashboard />}
+            element={
+              <AdminDashboard />
+            }
           />
 
           <Route
             path="/admin/reports/:id"
-            element={<AdminReportDetail />}
+            element={
+              <AdminReportDetail />
+            }
           />
         </Route>
       </Route>
-
-      {/* FALLBACK */}
 
       <Route
         path="*"
