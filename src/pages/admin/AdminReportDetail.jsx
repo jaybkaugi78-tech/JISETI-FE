@@ -254,10 +254,6 @@ export default function AdminReportDetail() {
           )}
         </section>
 
-        {/* ========================================= */}
-        {/* REVIEW & STATUS */}
-        {/* ========================================= */}
-
         <section className="form-card">
           <h3>Review & Status</h3>
 
