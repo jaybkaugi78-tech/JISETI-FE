@@ -18,10 +18,6 @@ export default function ReportDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // =====================================================
-  // LOAD REPORT FROM FLASK
-  // =====================================================
-
   useEffect(() => {
     async function loadReport() {
       try {
@@ -56,10 +52,6 @@ export default function ReportDetail() {
 
     loadReport();
   }, [id]);
-
-  // =====================================================
-  // DELETE REPORT
-  // =====================================================
 
   const remove = async () => {
     if (!report) {
@@ -105,10 +97,6 @@ export default function ReportDetail() {
     }
   };
 
-  // =====================================================
-  // LOADING
-  // =====================================================
-
   if (loading) {
     return (
       <div className="empty">
@@ -116,10 +104,6 @@ export default function ReportDetail() {
       </div>
     );
   }
-
-  // =====================================================
-  // ERROR
-  // =====================================================
 
   if (error) {
     return (
@@ -136,9 +120,6 @@ export default function ReportDetail() {
     );
   }
 
-  // =====================================================
-  // REPORT NOT FOUND
-  // =====================================================
 
   if (!report) {
     return (
@@ -148,43 +129,23 @@ export default function ReportDetail() {
     );
   }
 
-  // =====================================================
-  // REPORT PERMISSIONS
-  // =====================================================
-
   const owner =
     Number(report.user_id) === Number(user?.id);
 
   const editable =
     owner && report.status === "DRAFT";
 
-  // =====================================================
-  // MEDIA
-  // =====================================================
-
   const media = Array.isArray(report.media)
     ? report.media
     : [];
-
-  // =====================================================
-  // LOCATION
-  // =====================================================
 
   const locationName =
     report.location_name ||
     "Location not specified";
 
-  // =====================================================
-  // CREATED DATE
-  // =====================================================
-
   const createdAt = report.created_at
     ? new Date(report.created_at).toLocaleString()
     : "Unknown";
-
-  // =====================================================
-  // MEDIA URL
-  // =====================================================
 
   const getMediaUrl = (filename) => {
     if (!filename) {
@@ -201,19 +162,12 @@ export default function ReportDetail() {
     return `http://127.0.0.1:5000/uploads/${filename}`;
   };
 
-  // =====================================================
-  // CHECK IF MEDIA IS VIDEO
-  // =====================================================
-
   const isVideo = (filename) => {
     return /\.(mp4|webm|ogg|mov)$/i.test(
       filename
     );
   };
 
-  // =====================================================
-  // PAGE
-  // =====================================================
 
   return (
     <div>
@@ -235,10 +189,6 @@ export default function ReportDetail() {
       </div>
 
       <div className="detail-grid">
-
-        {/* =============================================
-            LEFT SIDE
-        ============================================== */}
 
         <section className="form-card">
 
@@ -313,10 +263,6 @@ export default function ReportDetail() {
 
         </section>
 
-        {/* =============================================
-            RIGHT SIDE
-        ============================================== */}
-
         <section className="form-card">
 
           <h3>Report Information</h3>
@@ -374,10 +320,6 @@ export default function ReportDetail() {
 
             <b>{media.length}</b>
           </div>
-
-          {/* =============================================
-              EDIT / DELETE
-          ============================================== */}
 
           {editable ? (
             <div className="detail-actions">

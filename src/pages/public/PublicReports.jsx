@@ -204,7 +204,7 @@ export default function PublicReports() {
 
         <div className="public-report-search">
           <span>
-            ⌕
+          
           </span>
 
           <input
@@ -254,8 +254,8 @@ export default function PublicReports() {
                     <div className="public-report-icon">
                       {report.type ===
                       "RED_FLAG"
-                        ? "⚑"
-                        : "⌂"}
+                        ? ""
+                        : ""}
                     </div>
 
                     <div className="public-report-main">
@@ -266,7 +266,7 @@ export default function PublicReports() {
                       </h3>
 
                       <div className="public-report-location">
-                        📍{" "}
+                        {" "}
                         {report.location_name ||
                           "Location not provided"}
                       </div>
@@ -306,7 +306,7 @@ export default function PublicReports() {
                         to={`/public/reports/${report.id}`}
                         className="btn btn-outline"
                       >
-                        View Details →
+                        View Details 
                       </Link>
                     </div>
                   </article>

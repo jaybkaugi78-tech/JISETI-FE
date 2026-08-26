@@ -93,7 +93,7 @@ export default function PublicReportDetail() {
             to="/public/reports"
             className="btn btn-navy"
           >
-            ← Back to Reports
+            Back to Reports
           </Link>
         </div>
       </div>
@@ -146,7 +146,7 @@ export default function PublicReportDetail() {
         to="/public/reports"
         className="public-back-link"
       >
-        ← Back to Public Reports
+         Back to Public Reports
       </Link>
 
       <div className="page-heading">
@@ -182,7 +182,7 @@ export default function PublicReportDetail() {
           </h3>
 
           <p>
-            📍 {location}
+           {location}
           </p>
 
           {report.latitude !=
