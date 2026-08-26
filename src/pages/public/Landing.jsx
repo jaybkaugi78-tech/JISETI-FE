@@ -7,7 +7,6 @@ export default function Landing() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Load reports that are visible to the public
   useEffect(() => {
     const loadPublicReports = async () => {
       try {
@@ -35,8 +34,6 @@ export default function Landing() {
 
   return (
     <div className="landing">
-
-      {/* ================= NAVBAR ================= */}
 
       <header className="landing-nav">
         <div className="brand brand-dark">
@@ -73,8 +70,6 @@ export default function Landing() {
         </nav>
       </header>
 
-      {/* ================= HERO ================= */}
-
       <section className="hero">
         <div>
           <span className="eyebrow">
@@ -102,14 +97,14 @@ export default function Landing() {
               to="/login"
               className="btn btn-navy"
             >
-              ⚑ Report Corruption
+              Report Corruption
             </Link>
 
             <Link
               to="/login"
               className="btn btn-gold"
             >
-              ⌂ Request Intervention
+              Request Intervention
             </Link>
 
           </div>
@@ -127,8 +122,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
-      {/* ================= HOW IT WORKS ================= */}
 
       <section
         className="landing-cards"
@@ -173,8 +166,6 @@ export default function Landing() {
 
         ))}
       </section>
-
-      {/* ================= PUBLIC REPORTS ================= */}
 
       <section
         className="public-reports"
@@ -257,7 +248,7 @@ export default function Landing() {
                 </div>
 
                 <p className="location">
-                  📍{" "}
+                  {" "}
                   {report.location_name ||
                     "Location unavailable"}
                 </p>
@@ -282,15 +273,12 @@ export default function Landing() {
 
       </section>
 
-      {/* ================= ISSUES NEAR YOU ================= */}
 
       <section id="nearby">
 
         <NearbyIssuesMap />
 
       </section>
-
-      {/* ================= ABOUT ================= */}
 
       <section
         id="about"
