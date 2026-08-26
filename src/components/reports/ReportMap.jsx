@@ -5,15 +5,6 @@ import {
   Popup,
   useMap,
 } from "react-leaflet";
-  );
-}
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  useMap,
-} from "react-leaflet";
 
 import { useEffect } from "react";
 
@@ -54,12 +45,16 @@ export default function ReportMap({ report }) {
 
   return (
     <MapContainer
-      center={position || defaultCenter}
+      center={
+        position || defaultCenter
+      }
       zoom={position ? 15 : 11}
       className="map"
     >
       {position && (
-        <MapUpdater position={position} />
+        <MapUpdater
+          position={position}
+        />
       )}
 
       <TileLayer
@@ -68,7 +63,9 @@ export default function ReportMap({ report }) {
       />
 
       {position && (
-        <Marker position={position}>
+        <Marker
+          position={position}
+        >
           <Popup>
             {report?.location_name ||
               report?.title ||
