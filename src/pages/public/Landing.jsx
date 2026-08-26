@@ -10,20 +10,33 @@ export default function Landing() {
   useEffect(() => {
     const loadPublicReports = async () => {
       try {
-        const response = await fetch(
-          "http://127.0.0.1:5000/api/public/reports"
-        );
+        setLoading(true);
+        setError("");
 
-        if (!response.ok) {
-          throw new Error("Could not load reports");
-        }
+        const response = await fetch(
+          "http://127.0.0.1:5000/api/reports/public"
+        );
 
         const data = await response.json();
 
-        setReports(data.reports || []);
+        if (!response.ok) {
+          throw new Error(
+            data.error || "Could not load public reports."
+          );
+        }
+
+        setReports(
+          Array.isArray(data.reports)
+            ? data.reports
+            : []
+        );
       } catch (err) {
         console.error(err);
-        setError("Unable to load public reports.");
+
+        setError(
+          err.message ||
+            "Unable to load public reports."
+        );
       } finally {
         setLoading(false);
       }
@@ -32,27 +45,51 @@ export default function Landing() {
     loadPublicReports();
   }, []);
 
+  const previewReports = reports.slice(0, 3);
+
+  const getStatusClass = (status) => {
+    if (status === "RESOLVED") {
+      return "resolved";
+    }
+
+    return "investigation";
+  };
+
   return (
     <div className="landing">
-
       <header className="landing-nav">
         <div className="brand brand-dark">
-          <div className="brand-mark">J</div>
+          <div className="brand-mark">
+            J
+          </div>
 
           <div>
-            <strong>JISETI</strong>
-            <small>Sauti yako, Mabadiliko yetu.</small>
+            <strong>
+              JISETI
+            </strong>
+
+            <small>
+              Sauti yako, Mabadiliko yetu.
+            </small>
           </div>
         </div>
 
         <nav>
-          <a href="#how">How It Works</a>
+          <a href="#how">
+            How It Works
+          </a>
 
-          <a href="#reports">Reports</a>
+          <a href="#reports">
+            Reports
+          </a>
 
-          <a href="#nearby">Issues Near You</a>
+          <a href="#nearby">
+            Issues Near You
+          </a>
 
-          <a href="#about">About Us</a>
+          <a href="#about">
+            About Us
+          </a>
 
           <Link
             to="/login"
@@ -92,21 +129,19 @@ export default function Landing() {
           </p>
 
           <div className="hero-actions">
-
             <Link
               to="/login"
               className="btn btn-navy"
             >
-              Report Corruption
+              ⚑ Report Corruption
             </Link>
 
             <Link
               to="/login"
               className="btn btn-gold"
             >
-              Request Intervention
+              ⌂ Request Intervention
             </Link>
-
           </div>
         </div>
 
@@ -118,7 +153,9 @@ export default function Landing() {
             VOICE
             <br />
 
-            <b>MATTERS</b>
+            <b>
+              MATTERS
+            </b>
           </div>
         </div>
       </section>
@@ -133,47 +170,48 @@ export default function Landing() {
             "Report",
             "Submit a report about corruption or an issue needing attention.",
           ],
-
           [
             "2",
             "Review",
             "Relevant authorities review your report.",
           ],
-
           [
             "3",
             "Action",
             "The issue is investigated and progress is tracked.",
           ],
-
           [
             "4",
             "Resolution",
             "Resolved issues create a better community.",
           ],
-        ].map(([number, title, description]) => (
+        ].map(
+          ([number, title, description]) => (
+            <div
+              className="info-card"
+              key={number}
+            >
+              <b>
+                {number}
+              </b>
 
-          <div
-            className="info-card"
-            key={number}
-          >
-            <b>{number}</b>
+              <h3>
+                {title}
+              </h3>
 
-            <h3>{title}</h3>
-
-            <p>{description}</p>
-          </div>
-
-        ))}
+              <p>
+                {description}
+              </p>
+            </div>
+          )
+        )}
       </section>
 
       <section
-        className="public-reports"
+        className="landing-public-reports"
         id="reports"
       >
-
-        <div className="section-head">
-
+        <div className="landing-public-head">
           <div>
             <span className="eyebrow">
               COMMUNITY REPORTS
@@ -184,109 +222,127 @@ export default function Landing() {
             </h2>
 
             <p>
-              View issues currently being investigated
-              or already resolved.
+              See recent issues being investigated or
+              already resolved.
             </p>
           </div>
 
+          <Link
+            to="/public/reports"
+            className="btn btn-outline"
+          >
+            View All Reports →
+          </Link>
         </div>
 
-        {/* Loading */}
-
         {loading && (
-          <p>
+          <div className="empty">
             Loading reports...
-          </p>
+          </div>
         )}
-
-        {/* Error */}
 
         {error && (
-          <p>
+          <div className="form-error">
             {error}
-          </p>
+          </div>
         )}
-
-        {/* No reports */}
 
         {!loading &&
           !error &&
-          reports.length === 0 && (
-
-            <p>
+          previewReports.length === 0 && (
+            <div className="empty">
               No public reports are available yet.
-            </p>
-
+            </div>
           )}
 
-        {/* Reports */}
+        {!loading &&
+          !error &&
+          previewReports.length > 0 && (
+            <div className="landing-report-grid">
+              {previewReports.map(
+                (report) => (
+                  <article
+                    key={report.id}
+                    className="landing-report-card"
+                  >
+                    <div className="landing-report-top">
+                      <div className="landing-report-icon">
+                        {report.type === "RED_FLAG"
+                          ? "⚑"
+                          : "⌂"}
+                      </div>
 
-        <div className="reports-list">
+                      <span
+                        className={`report-status ${getStatusClass(
+                          report.status
+                        )}`}
+                      >
+                        {report.status}
+                      </span>
+                    </div>
 
-          {reports.map((report) => (
+                    <h3>
+                      {report.title}
+                    </h3>
 
-            <div
-              className="report-card"
-              key={report.id}
-            >
+                    <p className="landing-report-location">
+                      📍{" "}
+                      {report.location_name ||
+                        "Location not provided"}
+                    </p>
 
-              <div className="report-main">
+                    <p className="landing-report-description">
+                      {report.description}
+                    </p>
 
-                <div className="report-title-row">
+                    <div className="landing-report-footer">
+                      <span
+                        className={
+                          report.type === "RED_FLAG"
+                            ? "public-report-type corruption"
+                            : "public-report-type intervention"
+                        }
+                      >
+                        {report.type === "RED_FLAG"
+                          ? "Corruption Report"
+                          : "Intervention Request"}
+                      </span>
 
-                  <h3>
-                    {report.title}
-                  </h3>
-
-                  <span className="status-badge">
-                    {report.status?.replaceAll(
-                      "_",
-                      " "
-                    )}
-                  </span>
-
-                </div>
-
-                <p className="location">
-                  {" "}
-                  {report.location_name ||
-                    "Location unavailable"}
-                </p>
-
-                <p>
-                  {report.description}
-                </p>
-
-                <small>
-                  {report.type === "RED_FLAG"
-                    ? "Corruption Report"
-                    : "Intervention Request"}
-                </small>
-
-              </div>
-
+                      <Link
+                        to={`/public/reports/${report.id}`}
+                        className="view-link"
+                      >
+                        View Details →
+                      </Link>
+                    </div>
+                  </article>
+                )
+              )}
             </div>
+          )}
 
-          ))}
-
+        <div className="landing-report-more">
+          <Link
+            to="/public/reports"
+            className="btn btn-navy"
+          >
+            View All Public Reports →
+          </Link>
         </div>
-
       </section>
 
-
-      <section id="nearby">
-
+      <section
+        id="nearby"
+        className="landing-nearby"
+      >
         <NearbyIssuesMap />
-
       </section>
 
       <section
         id="about"
         className="landing-cards"
       >
-
         <div className="info-card">
-
           <span className="eyebrow">
             ABOUT JISETI
           </span>
@@ -300,11 +356,8 @@ export default function Landing() {
             corruption, request government intervention,
             and follow issues affecting their communities.
           </p>
-
         </div>
-
       </section>
-
     </div>
   );
 }
