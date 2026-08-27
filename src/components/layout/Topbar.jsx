@@ -1,11 +1,21 @@
 import { useSelector } from "react-redux";
 
-export default function Topbar({ admin }) {
+export default function Topbar({
+  admin,
+  onMenuClick,
+}) {
   const user = useSelector((state) => state.auth.user);
   return (
     <header className="topbar">
       <div>
-        <button className="menu-btn">☰</button>
+        <button
+  type="button"
+  className="menu-btn"
+  onClick={onMenuClick}
+  aria-label="Open menu"
+>
+  ☰
+</button>
         <h1>{admin ? "Admin Dashboard" : "Dashboard"}</h1>
       </div>
       <div className="top-user">
