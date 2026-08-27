@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../services/api";
 import {
   useEffect,
   useState,
@@ -32,7 +33,7 @@ export default function PublicReportDetail() {
 
           const response =
             await fetch(
-              `http://127.0.0.1:5000/api/reports/public/${id}`
+              `${API_BASE_URL}/api/reports/public/${id}`
             );
 
           const data =
@@ -132,7 +133,7 @@ export default function PublicReportDetail() {
 
   const mediaUrl =
     (filename) =>
-      `http://127.0.0.1:5000/api/reports/media/${filename}`;
+      `${API_BASE_URL}/api/reports/media/${filename}`;
 
   const isVideo =
     (filename) =>

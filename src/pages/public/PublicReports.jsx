@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../services/api";
 import {
   useEffect,
   useMemo,
@@ -33,7 +34,7 @@ export default function PublicReports() {
 
           const response =
             await fetch(
-              "http://127.0.0.1:5000/api/reports/public"
+              `${API_BASE_URL}/api/reports/public`
             );
 
           const data =

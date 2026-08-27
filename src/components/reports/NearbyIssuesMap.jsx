@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../services/api";
 import { useEffect, useState } from "react";
 import {
   MapContainer,
@@ -58,7 +59,7 @@ export default function NearbyIssuesMap() {
 
         try {
           const response = await fetch(
-            `http://127.0.0.1:5000/api/public/reports/nearby?lat=${latitude}&lng=${longitude}&radius=10`
+            `${API_BASE_URL}/api/public/reports/nearby?lat=${latitude}&lng=${longitude}&radius=10`
           );
 
           if (!response.ok) {

@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "../../services/api";
 
 import StatusBadge from "../../components/common/StatusBadge";
 import ReportMap from "../../components/reports/ReportMap";
@@ -159,7 +160,7 @@ export default function ReportDetail() {
       return filename;
     }
 
-    return `http://127.0.0.1:5000/uploads/${filename}`;
+    return `${API_BASE_URL}/uploads/${filename}`;
   };
 
   const isVideo = (filename) => {

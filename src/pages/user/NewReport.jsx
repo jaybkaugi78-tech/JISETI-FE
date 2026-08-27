@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../services/api";
 import {
   useEffect,
   useRef,
@@ -613,7 +614,7 @@ export default function NewReport() {
 
   const mediaUrl =
     (filename) =>
-      `http://127.0.0.1:5000/api/reports/media/${filename}`;
+      `${API_BASE_URL}/api/reports/media/${filename}`
 
   const isVideo =
     (filename) =>
