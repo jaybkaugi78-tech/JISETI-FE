@@ -9,6 +9,8 @@ import {
   useParams,
 } from "react-router-dom";
 
+import imageCompression from "browser-image-compression";
+
 import ReportMap from "../../components/reports/ReportMap";
 import { apiFetch } from "../../services/api";
 
@@ -39,6 +41,9 @@ export default function NewReport() {
     useState(false);
 
   const [gettingLocation, setGettingLocation] =
+    useState(false);
+
+  const [compressingFiles, setCompressingFiles] =
     useState(false);
 
   const [error, setError] = useState("");
@@ -109,16 +114,106 @@ export default function NewReport() {
     loadReport();
   }, [id, isEditMode]);
 
-  const handleFiles = (e) => {
+  const handleFiles = async (e) => {
     const selectedFiles = Array.from(
       e.target.files || []
     );
 
-    setFiles(selectedFiles);
+    if (selectedFiles.length === 0) {
+      setFiles([]);
+      return;
+    }
+
+    try {
+      setCompressingFiles(true);
+      setError("");
+
+      const processedFiles = [];
+
+      for (const file of selectedFiles) {
+        if (file.type.startsWith("image/")) {
+          try {
+            const compressedFile =
+              await imageCompression(
+                file,
+                {
+                  maxSizeMB: 3,
+                  maxWidthOrHeight: 1920,
+                  useWebWorker: true,
+                  initialQuality: 0.82,
+                }
+              );
+
+            const finalFile = new File(
+              [compressedFile],
+              file.name,
+              {
+                type:
+                  compressedFile.type ||
+                  file.type,
+                lastModified:
+                  Date.now(),
+              }
+            );
+
+            processedFiles.push(
+              finalFile
+            );
+
+            console.log(
+              `Compressed ${file.name}:`,
+              {
+                beforeMB:
+                  (
+                    file.size /
+                    1024 /
+                    1024
+                  ).toFixed(2),
+
+                afterMB:
+                  (
+                    finalFile.size /
+                    1024 /
+                    1024
+                  ).toFixed(2),
+              }
+            );
+          } catch (compressionError) {
+            console.error(
+              `Compression failed for ${file.name}:`,
+              compressionError
+            );
+
+            processedFiles.push(
+              file
+            );
+          }
+        } else {
+          processedFiles.push(
+            file
+          );
+        }
+      }
+
+      setFiles(
+        processedFiles
+      );
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        "Unable to process selected files."
+      );
+    } finally {
+      setCompressingFiles(
+        false
+      );
+    }
   };
 
   const findLocation = async () => {
-    const location = form.location_name.trim();
+    const location =
+      form.location_name.trim();
 
     if (!location) {
       setLocationError(
@@ -143,7 +238,8 @@ export default function NewReport() {
         );
       }
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!data.length) {
         setLocationError(
@@ -154,13 +250,25 @@ export default function NewReport() {
 
       const result = data[0];
 
-      setForm((current) => ({
-        ...current,
-        location_name:
-          result.display_name || location,
-        latitude: Number(result.lat),
-        longitude: Number(result.lon),
-      }));
+      setForm(
+        (current) => ({
+          ...current,
+
+          location_name:
+            result.display_name ||
+            location,
+
+          latitude:
+            Number(
+              result.lat
+            ),
+
+          longitude:
+            Number(
+              result.lon
+            ),
+        })
+      );
     } catch (err) {
       console.error(
         "Location search error:",
@@ -172,7 +280,9 @@ export default function NewReport() {
           "Unable to find that location."
       );
     } finally {
-      setSearchingLocation(false);
+      setSearchingLocation(
+        false
+      );
     }
   };
 
@@ -189,9 +299,13 @@ export default function NewReport() {
         return "";
       }
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
-      return data.display_name || "";
+      return (
+        data.display_name ||
+        ""
+      );
     } catch (err) {
       console.error(
         "Reverse geocoding error:",
@@ -207,6 +321,7 @@ export default function NewReport() {
       setLocationError(
         "Geolocation is not supported by your browser."
       );
+
       return;
     }
 
@@ -227,17 +342,24 @@ export default function NewReport() {
             longitude
           );
 
-        setForm((current) => ({
-          ...current,
-          latitude,
-          longitude,
-          location_name:
-            locationName ||
-            current.location_name ||
-            "Current location",
-        }));
+        setForm(
+          (current) => ({
+            ...current,
 
-        setGettingLocation(false);
+            latitude,
+
+            longitude,
+
+            location_name:
+              locationName ||
+              current.location_name ||
+              "Current location",
+          })
+        );
+
+        setGettingLocation(
+          false
+        );
       },
 
       (geoError) => {
@@ -273,19 +395,27 @@ export default function NewReport() {
           );
         }
 
-        setGettingLocation(false);
+        setGettingLocation(
+          false
+        );
       },
 
       {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0,
+        enableHighAccuracy:
+          true,
+
+        timeout:
+          15000,
+
+        maximumAge:
+          0,
       }
     );
   };
 
   const createReport = async () => {
-    const formData = new FormData();
+    const formData =
+      new FormData();
 
     formData.append(
       "type",
@@ -319,22 +449,29 @@ export default function NewReport() {
       form.longitude
     );
 
-    files.forEach((file) => {
-      formData.append(
-        "media",
-        file
-      );
-    });
-
-    const response = await apiFetch(
-      "/api/reports",
-      {
-        method: "POST",
-        body: formData,
+    files.forEach(
+      (file) => {
+        formData.append(
+          "media",
+          file
+        );
       }
     );
 
-    const data = await response.json();
+    const response =
+      await apiFetch(
+        "/api/reports",
+        {
+          method:
+            "POST",
+
+          body:
+            formData,
+        }
+      );
+
+    const data =
+      await response.json();
 
     if (!response.ok) {
       throw new Error(
@@ -347,30 +484,39 @@ export default function NewReport() {
   };
 
   const updateReport = async () => {
-    const response = await apiFetch(
-      `/api/reports/${id}`,
-      {
-        method: "PUT",
+    const response =
+      await apiFetch(
+        `/api/reports/${id}`,
+        {
+          method:
+            "PUT",
 
-        body: JSON.stringify({
-          title: form.title.trim(),
+          body:
+            JSON.stringify({
+              title:
+                form.title.trim(),
 
-          description:
-            form.description.trim(),
+              description:
+                form.description.trim(),
 
-          location_name:
-            form.location_name.trim(),
+              location_name:
+                form.location_name.trim(),
 
-          latitude:
-            Number(form.latitude),
+              latitude:
+                Number(
+                  form.latitude
+                ),
 
-          longitude:
-            Number(form.longitude),
-        }),
-      }
-    );
+              longitude:
+                Number(
+                  form.longitude
+                ),
+            }),
+        }
+      );
 
-    const data = await response.json();
+    const data =
+      await response.json();
 
     if (!response.ok) {
       throw new Error(
@@ -392,13 +538,17 @@ export default function NewReport() {
       setError(
         "Title and description are required."
       );
+
       return;
     }
 
-    if (!form.location_name.trim()) {
+    if (
+      !form.location_name.trim()
+    ) {
       setError(
         "Enter a location for the report."
       );
+
       return;
     }
 
@@ -409,16 +559,29 @@ export default function NewReport() {
       setError(
         "Please click Find Location or Use My Current Location first."
       );
+
+      return;
+    }
+
+    if (compressingFiles) {
+      setError(
+        "Please wait for the selected images to finish compressing."
+      );
+
       return;
     }
 
     try {
-      setSubmitting(true);
+      setSubmitting(
+        true
+      );
+
       setError("");
 
-      const report = isEditMode
-        ? await updateReport()
-        : await createReport();
+      const report =
+        isEditMode
+          ? await updateReport()
+          : await createReport();
 
       if (!report?.id) {
         throw new Error(
@@ -432,22 +595,38 @@ export default function NewReport() {
     } catch (err) {
       console.error(err);
 
-      if (err.message !== "Session expired") {
+      if (
+        err.message !==
+        "Session expired"
+      ) {
         setError(
           err.message ||
             "Something went wrong."
         );
       }
     } finally {
-      setSubmitting(false);
+      setSubmitting(
+        false
+      );
     }
   };
 
-  const mediaUrl = (filename) =>
-    `http://127.0.0.1:5000/api/reports/media/${filename}`;
+  const mediaUrl =
+    (filename) =>
+      `http://127.0.0.1:5000/api/reports/media/${filename}`;
 
-  const isVideo = (filename) =>
-    /\.(mp4|webm|mov)$/i.test(filename);
+  const isVideo =
+    (filename) =>
+      /\.(mp4|webm|mov)$/i.test(
+        filename
+      );
+
+  const formatMB = (bytes) =>
+    (
+      bytes /
+      1024 /
+      1024
+    ).toFixed(2);
 
   if (loading) {
     return (
@@ -481,7 +660,8 @@ export default function NewReport() {
         <div
           className="form-card"
           style={{
-            marginBottom: "16px",
+            marginBottom:
+              "16px",
           }}
         >
           {error}
@@ -499,7 +679,8 @@ export default function NewReport() {
               <button
                 type="button"
                 className={
-                  type === "Red-Flag"
+                  type ===
+                  "Red-Flag"
                     ? "selected"
                     : ""
                 }
@@ -512,7 +693,9 @@ export default function NewReport() {
                   isEditMode
                 }
               >
-                <b>⚑</b>
+                <b>
+                  ⚑
+                </b>
 
                 <span>
                   <strong>
@@ -529,7 +712,8 @@ export default function NewReport() {
               <button
                 type="button"
                 className={
-                  type === "Intervention"
+                  type ===
+                  "Intervention"
                     ? "selected"
                     : ""
                 }
@@ -542,7 +726,9 @@ export default function NewReport() {
                   isEditMode
                 }
               >
-                <b>⌂</b>
+                <b>
+                  ⌂
+                </b>
 
                 <span>
                   <strong>
@@ -581,8 +767,10 @@ export default function NewReport() {
                 onChange={(e) =>
                   setForm({
                     ...form,
+
                     title:
-                      e.target.value,
+                      e.target
+                        .value,
                   })
                 }
                 placeholder="Enter a short title for your report"
@@ -601,8 +789,10 @@ export default function NewReport() {
                 onChange={(e) =>
                   setForm({
                     ...form,
+
                     description:
-                      e.target.value,
+                      e.target
+                        .value,
                   })
                 }
                 placeholder="Provide detailed information about the issue..."
@@ -655,7 +845,8 @@ export default function NewReport() {
                                 filename
                               )}
                               alt={`Evidence ${
-                                index + 1
+                                index +
+                                1
                               }`}
                             />
                           )}
@@ -673,7 +864,9 @@ export default function NewReport() {
               </>
             ) : (
               <div className="upload-box">
-                <b>◇</b>
+                <b>
+                  ◇
+                </b>
 
                 <br />
 
@@ -688,7 +881,8 @@ export default function NewReport() {
                     handleFiles
                   }
                   style={{
-                    display: "none",
+                    display:
+                      "none",
                   }}
                 />
 
@@ -697,14 +891,27 @@ export default function NewReport() {
                   onClick={() =>
                     fileInputRef.current?.click()
                   }
+                  disabled={
+                    compressingFiles
+                  }
                 >
-                  Choose Files
+                  {compressingFiles
+                    ? "Compressing Images..."
+                    : "Choose Files"}
                 </button>
 
                 <p>
-                  Images and videos can
-                  be added as evidence.
+                  Images are compressed
+                  before upload. Videos
+                  are uploaded normally.
                 </p>
+
+                {compressingFiles && (
+                  <p>
+                    Optimizing selected
+                    images...
+                  </p>
+                )}
 
                 {files.length >
                   0 && (
@@ -716,7 +923,7 @@ export default function NewReport() {
                       1
                         ? "s"
                         : ""}{" "}
-                      selected
+                      ready
                     </strong>
 
                     {files.map(
@@ -727,7 +934,14 @@ export default function NewReport() {
                         <p
                           key={`${file.name}-${index}`}
                         >
-                          {file.name}
+                          {
+                            file.name
+                          }{" "}
+                          (
+                          {formatMB(
+                            file.size
+                          )}{" "}
+                          MB)
                         </p>
                       )
                     )}
@@ -761,14 +975,22 @@ export default function NewReport() {
                 setForm(
                   (current) => ({
                     ...current,
+
                     location_name:
-                      e.target.value,
-                    latitude: "",
-                    longitude: "",
+                      e.target
+                        .value,
+
+                    latitude:
+                      "",
+
+                    longitude:
+                      "",
                   })
                 );
 
-                setLocationError("");
+                setLocationError(
+                  ""
+                );
               }}
               placeholder="e.g. Ruiru, Kiambu"
               required
@@ -777,10 +999,17 @@ export default function NewReport() {
 
           <div
             style={{
-              display: "flex",
-              gap: "10px",
-              flexWrap: "wrap",
-              marginBottom: "15px",
+              display:
+                "flex",
+
+              gap:
+                "10px",
+
+              flexWrap:
+                "wrap",
+
+              marginBottom:
+                "15px",
             }}
           >
             <button
@@ -888,7 +1117,8 @@ export default function NewReport() {
           disabled={
             submitting ||
             searchingLocation ||
-            gettingLocation
+            gettingLocation ||
+            compressingFiles
           }
         >
           {submitting
@@ -906,12 +1136,17 @@ export default function NewReport() {
           <>
             Changes are allowed while
             this report remains{" "}
-            <b>DRAFT</b>.
+            <b>
+              DRAFT
+            </b>.
           </>
         ) : (
           <>
             Your report will be saved
-            as a <b>DRAFT</b>.
+            as a{" "}
+            <b>
+              DRAFT
+            </b>.
           </>
         )}
       </p>
