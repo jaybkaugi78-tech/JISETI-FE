@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../../services/api";
 
 import StatusBadge from "../../components/common/StatusBadge";
 import ReportMap from "../../components/reports/ReportMap";
@@ -148,7 +149,7 @@ export default function AdminReportDetail() {
       return filename;
     }
 
-    return `http://127.0.0.1:5000/api/reports/media/${filename}`;
+    return `${API_BASE_URL}/api/reports/media/${filename}`;
   };
 
   const isVideo = (filename) => {

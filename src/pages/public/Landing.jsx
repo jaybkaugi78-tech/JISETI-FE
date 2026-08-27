@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import NearbyIssuesMap from "../../components/reports/NearbyIssuesMap";
+import { API_BASE_URL } from "../../services/api";
 
 export default function Landing() {
   const [reports, setReports] = useState([]);
@@ -14,7 +15,7 @@ export default function Landing() {
         setError("");
 
         const response = await fetch(
-          "http://127.0.0.1:5000/api/reports/public"
+          `${API_BASE_URL}/api/reports/public`
         );
 
         const data = await response.json();
